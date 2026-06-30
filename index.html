@@ -120,11 +120,28 @@
   .confetti{position:absolute;top:-16px;width:9px;height:14px;opacity:0;will-change:transform}
   @keyframes confetti{0%{opacity:0;transform:translateY(-10px) rotate(0)}10%{opacity:1}100%{opacity:.9;transform:translateY(240px) rotate(540deg)}}
 
-  .cat-layer{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
-  .cat-ground{transform:translateY(7%)}
-  .cat-float{animation:catfloat 6s ease-in-out infinite}
-  @keyframes catfloat{0%,100%{transform:translateY(-1%)}50%{transform:translateY(3%)}}
-  .cat{width:30%;max-width:230px;min-width:120px;filter:drop-shadow(0 14px 16px rgba(20,30,60,.32))}
+  .cat-layer{position:absolute;inset:0;pointer-events:none}
+  .cat-pos{position:absolute;width:30%;transform:translate(-50%,-50%);touch-action:none}
+  .cat-pos.drag{pointer-events:auto;cursor:grab}
+  .cat-pos.drag.grabbing{cursor:grabbing}
+  .cat{width:100%;display:block;filter:drop-shadow(0 14px 16px rgba(20,30,60,.32))}
+  .cat.flip{transform:scaleX(-1)}
+  .cat-motion:not(.m-none) .cat-bob{animation:bob 6s ease-in-out infinite}
+  .m-peek .cat-bob{animation:bob 5s ease-in-out .9s infinite}
+  .m-bobble .cat-bob{animation:bobble 3.2s ease-in-out infinite}
+  .m-peek{animation:peekUp .9s cubic-bezier(.2,.7,.3,1) both}
+  .m-slideL{animation:slideInL .8s ease-out both}
+  .m-slideR{animation:slideInR .8s ease-out both}
+  .m-pop{animation:popIn .7s cubic-bezier(.2,1.5,.5,1) both}
+  @keyframes bob{0%,100%{transform:translateY(-2%)}50%{transform:translateY(3%)}}
+  @keyframes bobble{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+  @keyframes peekUp{0%{transform:translateY(120%)}72%{transform:translateY(-5%)}100%{transform:translateY(0)}}
+  @keyframes slideInL{0%{transform:translateX(-170%);opacity:0}100%{transform:translateX(0);opacity:1}}
+  @keyframes slideInR{0%{transform:translateX(170%);opacity:0}100%{transform:translateX(0);opacity:1}}
+  @keyframes popIn{0%{transform:scale(0);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+  @keyframes walkR{0%{transform:translateX(-210%)}100%{transform:translateX(210%)}}
+  @keyframes walkL{0%{transform:translateX(210%)}100%{transform:translateX(-210%)}}
+  @keyframes waddle{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-6%) rotate(3deg)}}
   .breathe{animation:breathe 3.6s ease-in-out infinite;transform-origin:50% 70%}
   @keyframes breathe{0%,100%{transform:scaleY(1) scaleX(1)}50%{transform:scaleY(1.035) scaleX(1.012)}}
   .tail{transform-origin:62% 58%;animation:tail 4.5s ease-in-out infinite}
@@ -256,6 +273,18 @@
                   <label>Vivi's pose</label>
                   <div class="seg" id="seg-pose"></div>
                 </div>
+                <div class="field">
+                  <label>Size on screen</label>
+                  <div class="slider-row">
+                    <input type="range" id="sc-scale" min="0.45" max="1.7" step="0.05" oninput="updateScale(this.value)">
+                    <span class="dur-val" id="scale-val"></span>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>How Vivi enters the scene</label>
+                  <select id="sc-motion" onchange="updateScene('motion',this.value)"></select>
+                </div>
+                <label class="toggle" style="margin-bottom:15px"><span>↔ Face the other way</span><span class="switch"><input type="checkbox" id="sc-flip" onchange="updateFlip(this.checked)"><span></span></span></label>
                 <div class="field" style="margin-bottom:6px">
                   <label>Scene length</label>
                   <div class="slider-row">
@@ -265,7 +294,7 @@
                 </div>
               </div>
               <div>
-                <div class="field"><label>Live preview</label><div class="mini-stage" id="mini-stage"></div></div>
+                <div class="field"><label>Live preview · ✥ drag Vivi to place her</label><div class="mini-stage" id="mini-stage"></div></div>
                 <div class="field"><label>Sparkle effects</label><div class="toggles" id="fx-toggles"></div></div>
               </div>
             </div>
@@ -369,6 +398,7 @@
 /* ============================================================ DATA */
 const POSES = { floating:"Sitting up 😺", cuddle:"Cozy & content 😌", curled:"Curled & asleep 😴" };
 const EFFECTS = { sparkles:"Sparkles ✨", hearts:"Hearts 💗", confetti:"Confetti 🎉", question:"Mystery ❓" };
+const MOTIONS = { float:"Gentle bob", peek:"Peek up (over a desk)", slideL:"Slide in from left", slideR:"Slide in from right", pop:"Pop in", bobble:"Wiggle", walkR:"Walk across →", walkL:"Walk across ←", none:"Stay still" };
 
 const BACKDROPS = {
   "campus-lawn": {label:"Campus lawn", group:"Campus scenes", html:svgLawn()},
@@ -391,12 +421,12 @@ function svgNight(){return `<svg viewBox="0 0 320 180" preserveAspectRatio="xMid
 
 /* sample 5-week game (renamed to Vivi, set at OARS / HPU) */
 function uid(){return 's'+Math.random().toString(36).slice(2,9)}
-function sc(narration,bg,pose,fx,duration){return {id:uid(),narration,bg,pose,fx:Object.assign({sparkles:false,hearts:false,confetti:false,question:false},fx),duration}}
+function sc(narration,bg,pose,fx,duration,pos,motion){return {id:uid(),narration,bg,pose,fx:Object.assign({sparkles:false,hearts:false,confetti:false,question:false},fx),duration,pos:Object.assign({x:50,y:56,scale:1},pos||{}),motion:motion||'float'}}
 function seedEpisodes(){
   return [
    {id:uid(),name:"Week 1 · Where Is Vivi?",
     scenes:[
-      sc("Somewhere in the OARS Testing Center, a small ginger cat has slipped off the radar…","campus-lawn","floating",{question:true},6),
+      sc("Somewhere in the OARS Testing Center, a small cat has slipped off the radar…","campus-lawn","floating",{question:true},6,{x:50,y:64,scale:1},'peek'),
       sc("Vivi overheard a student ask for extra time — and wandered toward whatever makes that happen.","library","cuddle",{},6)],
     challenge:{title:"Where Is Vivi?",objective:"Get everyone looking, clicking, and chatting.",
       howto:"Vivi is hiding somewhere this week — the office, a Teams post, the newsletter, an email signature, or a shared doc.\n\nFind her and reply with WHERE she turned up.\n\nClue: “Vivi wandered somewhere that helps make extra time happen…”",
@@ -423,7 +453,7 @@ function seedEpisodes(){
    {id:uid(),name:"Week 5 · The Great Vivi Quest",
     scenes:[
       sc("One last adventure: Vivi's trail winds all through the building.","campus-night","floating",{},5.5),
-      sc("Follow her clues to the Golden Paw.","night","floating",{sparkles:true,confetti:true},6)],
+      sc("Follow her clues to the Golden Paw.","night","floating",{sparkles:true,confetti:true},6,{x:50,y:52,scale:1.05},'pop')],
     challenge:{title:"The Great Vivi Quest",objective:"End the run with a scavenger hunt.",
       howto:"Solve 5–10 clues placed around the office or Teams — each answer points to the next.\n\nExample clue: “Vivi heard exams are kept somewhere secure…” → the testing cabinet.\n\nThe final clue leads to the Golden Paw: a prize (candy basket, coffee gift card, your call).",
       points:"Finishing the quest = 20 pts 🏆",
@@ -437,7 +467,9 @@ let project = loadProject() || seedProject();
 let epId = project.episodes[0]?.id || null;
 let scId = project.episodes[0]?.scenes[0]?.id || null;
 
-function loadProject(){try{const r=localStorage.getItem('vivi_hpu_v1');return r?JSON.parse(r):null}catch(e){return null}}
+function normScene(s){s.fx=Object.assign({sparkles:false,hearts:false,confetti:false,question:false},s.fx||{});s.pos=Object.assign({x:50,y:56,scale:1},s.pos||{});if(!s.motion)s.motion='float';if(s.flip===undefined)s.flip=false;return s}
+function normProject(p){if(!p)return p;p.backgrounds=p.backgrounds||[];(p.episodes||[]).forEach(e=>{e.challenge=e.challenge||{title:'',objective:'',howto:'',points:'',bonus:''};(e.scenes||[]).forEach(normScene)});return p}
+function loadProject(){try{const r=localStorage.getItem('vivi_hpu_v1');return r?normProject(JSON.parse(r)):null}catch(e){return null}}
 function saveProject(){try{localStorage.setItem('vivi_hpu_v1',JSON.stringify(project))}catch(e){toast("Auto-save full (photos are large) — use Save file to keep them")}}
 
 function curEp(){return project.episodes.find(e=>e.id===epId)}
@@ -479,6 +511,11 @@ function renderEditor(){
   document.getElementById('edit-num').textContent='('+(idx+1)+' of '+e.scenes.length+')';
   document.getElementById('sc-narr').value=s.narration;
   document.getElementById('sc-dur').value=s.duration;document.getElementById('dur-val').textContent=s.duration+' sec';
+  s.pos=s.pos||{x:50,y:56,scale:1};
+  document.getElementById('sc-scale').value=s.pos.scale;document.getElementById('scale-val').textContent=Math.round(s.pos.scale*100)+'%';
+  const ms=document.getElementById('sc-motion');ms.innerHTML='';
+  Object.entries(MOTIONS).forEach(([k,label])=>{const o=document.createElement('option');o.value=k;o.textContent=label;if((s.motion||'float')===k)o.selected=true;ms.appendChild(o)});
+  document.getElementById('sc-flip').checked=!!s.flip;
   // poses
   const ps=document.getElementById('seg-pose');ps.innerHTML='';
   Object.entries(POSES).forEach(([k,label])=>{const b=document.createElement('button');b.className=(s.pose===k?'on':'');b.textContent=label;b.onclick=()=>updateScene('pose',k);ps.appendChild(b)});
@@ -512,6 +549,8 @@ function renderBgPicker(){
 function updateScene(field,val){const s=curScene();if(!s)return;s[field]=val;saveProject();
   if(field==='narration'){renderSceneList()}else if(field==='bg'){renderBgPicker();renderSceneList()}else{renderEditor();renderSceneList()}renderMini()}
 function updateDur(v){const s=curScene();if(!s)return;s.duration=parseFloat(v);document.getElementById('dur-val').textContent=v+' sec';saveProject();renderSceneList()}
+function updateScale(v){const s=curScene();if(!s)return;s.pos=s.pos||{x:50,y:56,scale:1};s.pos.scale=parseFloat(v);document.getElementById('scale-val').textContent=Math.round(v*100)+'%';saveProject();renderMini()}
+function updateFlip(v){const s=curScene();if(!s)return;s.flip=!!v;saveProject();renderMini()}
 function setProjTitle(v){project.title=v;saveProject()}
 
 function updateChallenge(field,val){const e=curEp();if(!e)return;e.challenge[field]=val;saveProject();if(field==='title')renderEpList()}
@@ -548,14 +587,14 @@ function deleteBg(id){if(!confirm("Remove this photo? Scenes using it fall back 
   saveProject();renderBgPicker();renderSceneList();renderMini();toast("Photo removed")}
 
 /* ============================================================ STAGE BUILD */
-const C={white:"#fbf6ee",line:"#6e4a36",tan:"#e3a96f",tanDk:"#c8814a",ear:"#f6aebc",blush:"#f59ab0",nose:"#ef6f8c",bow:"#f2849b",bowDk:"#c85f78",iris:"#6fbf73",pupil:"#284b2a",shine:"#eafff0",spot:"#7a4a2e",whisk:"#d8c4ab"};
+const C={white:"#f8f1e6",line:"#6e4a36",tan:"#e8b98e",tanDk:"#cf9a6e",ear:"#f4b6c0",blush:"#f3a0b0",nose:"#ef6f8c",bow:"#f2849b",bowDk:"#c85f78",iris:"#6fbf73",pupil:"#284b2a",shine:"#eafff0",spot:"#a9774a",whisk:"#d8c4ab"};
 function catSVG(pose){return pose==='curled'?catCurled():catSitting(pose)}
 function catSitting(pose){const open=pose==='floating';
-  const eyes=open?`<g class="eye-open"><path d="M94 72 C80 58 64 62 56 84 C64 98 82 98 94 90 C98 86 98 76 94 72Z" fill="#4f9e57"/><path d="M106 72 C120 58 136 62 144 84 C136 98 118 98 106 90 C102 86 102 76 106 72Z" fill="#4f9e57"/><ellipse cx="75" cy="86" rx="9" ry="9" fill="#79c47c"/><ellipse cx="125" cy="86" rx="9" ry="9" fill="#79c47c"/><ellipse cx="76" cy="84" rx="7.5" ry="12" fill="#22331c"/><ellipse cx="124" cy="84" rx="7.5" ry="12" fill="#22331c"/><circle cx="71" cy="77" r="3.8" fill="#fff"/><circle cx="79" cy="91" r="1.9" fill="#fff" opacity=".85"/><circle cx="119" cy="77" r="3.8" fill="#fff"/><circle cx="127" cy="91" r="1.9" fill="#fff" opacity=".85"/><path d="M56 84 C64 62 80 58 94 72" stroke="#5e3f2e" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M144 84 C136 62 120 58 106 72" stroke="#5e3f2e" stroke-width="3" fill="none" stroke-linecap="round"/></g>`
-    :`<path d="M58 82 Q76 96 94 80" stroke="#5e3f2e" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M106 80 Q124 96 142 82" stroke="#5e3f2e" stroke-width="3.4" fill="none" stroke-linecap="round"/><path d="M56 80 q2 -3 5 -3 M94 78 q3 0 5 3" stroke="#5e3f2e" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M106 78 q2 -3 5 -3 M142 80 q3 2 5 0" stroke="#5e3f2e" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  const eyes=open?`<g class="eye-open"><path d="M97 76 C86 62 62 64 55 84 C60 103 82 105 97 90 C101 86 101 80 97 76Z" fill="#4f9e57"/><path d="M103 76 C114 62 138 64 145 84 C140 103 118 105 103 90 C99 86 99 80 103 76Z" fill="#4f9e57"/><ellipse cx="74" cy="90" rx="13" ry="11" fill="#7ec77f"/><ellipse cx="126" cy="90" rx="13" ry="11" fill="#7ec77f"/><ellipse cx="73" cy="86" rx="9.5" ry="14" fill="#1f3119"/><ellipse cx="127" cy="86" rx="9.5" ry="14" fill="#1f3119"/><circle cx="67" cy="79" r="5.2" fill="#fff"/><circle cx="78" cy="94" r="2.6" fill="#fff" opacity=".9"/><circle cx="121" cy="79" r="5.2" fill="#fff"/><circle cx="132" cy="94" r="2.6" fill="#fff" opacity=".9"/><path d="M55 84 C62 66 84 62 97 76" stroke="#5e3f2e" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M145 84 C138 66 116 62 103 76" stroke="#5e3f2e" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>`
+    :`<path d="M58 84 Q76 99 96 82" stroke="#5e3f2e" stroke-width="3.6" fill="none" stroke-linecap="round"/><path d="M104 82 Q124 99 142 84" stroke="#5e3f2e" stroke-width="3.6" fill="none" stroke-linecap="round"/>`;
   return `<svg class="cat" viewBox="0 0 200 222" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vivi sitting">
     <g class="tail"><path d="M132 184 q44 8 50 -26 q4 -24 -18 -29 q14 9 10 27 q-5 24 -44 16Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path d="M146 170 q9 -2 13 -10" stroke="${C.tanDk}" stroke-width="4.6" fill="none" stroke-linecap="round"/><path d="M158 154 q7 0 11 -6" stroke="${C.tanDk}" stroke-width="4.4" fill="none" stroke-linecap="round"/></g>
-    <g class="breathe"><path d="M100 122 C76 122 66 150 67 172 C68 196 84 210 100 210 C116 210 132 196 133 172 C134 150 124 122 100 122Z" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M100 128 C84 128 73 150 71 170 C70 184 74 198 82 204 C76 172 84 144 100 136Z" fill="${C.tan}" opacity=".9"/><path d="M73 168 q7 -3 12 1 M73 180 q8 -3 13 1 M75 192 q8 -2 12 2" stroke="${C.tanDk}" stroke-width="2.6" fill="none" stroke-linecap="round"/><ellipse cx="88" cy="205" rx="11" ry="8" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><ellipse cx="112" cy="205" rx="11" ry="8" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><path d="M85 201 v7 M91 201 v7 M109 201 v7 M115 201 v7" stroke="#d8c4ab" stroke-width="1.5"/><path d="M100 132 l-16 -9 v19 Z" fill="${C.bow}" stroke="${C.bowDk}" stroke-width="2"/><path d="M100 132 l16 -9 v19 Z" fill="${C.bow}" stroke="${C.bowDk}" stroke-width="2"/><circle cx="100" cy="133" r="5" fill="${C.nose}" stroke="${C.bowDk}" stroke-width="2"/><path class="ear-l" d="M56 44 L44 8 L88 40 Z" fill="${C.white}" stroke="${C.line}" stroke-width="2.6"/><path class="ear-l" d="M59 40 L52 18 L80 40 Z" fill="${C.ear}"/><path class="ear-r" d="M144 44 L156 8 L112 40 Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path class="ear-r" d="M141 40 L148 18 L120 40 Z" fill="${C.ear}"/><ellipse cx="100" cy="76" rx="58" ry="54" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M100 24 C130 24 158 44 158 78 C158 100 146 118 124 124 C137 100 134 60 110 40 C107 34 103 29 100 24Z" fill="${C.tan}" opacity=".96"/><path d="M66 30 C80 24 95 26 100 38 C88 38 78 47 74 62 C69 50 66 38 66 30Z" fill="${C.tan}" opacity=".9"/><path d="M110 40 q10 6 12 18 M126 50 q9 6 9 18 M99 32 q9 0 13 8" stroke="${C.tanDk}" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".7"/><circle cx="84" cy="40" r="3.4" fill="${C.spot}"/><ellipse cx="58" cy="98" rx="11" ry="6.5" fill="${C.blush}" opacity=".5"/><ellipse cx="142" cy="98" rx="11" ry="6.5" fill="${C.blush}" opacity=".5"/>${eyes}<path d="M95 100 L105 100 L100 106 Z" fill="${C.nose}"/><path d="M100 106 q-5 6 -11 3 M100 106 q5 6 11 3" stroke="#b98e63" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M52 94 L24 90 M52 102 L23 105 M53 110 L25 117" stroke="${C.whisk}" stroke-width="1.8" stroke-linecap="round"/><path d="M148 94 L176 90 M148 102 L177 105 M147 110 L175 117" stroke="${C.whisk}" stroke-width="1.8" stroke-linecap="round"/></g></svg>`}
+    <g class="breathe"><path d="M100 122 C76 122 66 150 67 172 C68 196 84 210 100 210 C116 210 132 196 133 172 C134 150 124 122 100 122Z" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M100 128 C84 128 73 150 71 170 C70 184 74 198 82 204 C76 172 84 144 100 136Z" fill="${C.tan}" opacity=".75"/><path d="M73 170 q7 -3 12 1 M74 182 q8 -3 13 1 M76 193 q8 -2 12 2" stroke="${C.tanDk}" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".8"/><ellipse cx="88" cy="205" rx="11" ry="8" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><ellipse cx="112" cy="205" rx="11" ry="8" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><path d="M85 201 v7 M91 201 v7 M109 201 v7 M115 201 v7" stroke="#d8c4ab" stroke-width="1.5"/><path d="M100 132 l-16 -9 v19 Z" fill="${C.bow}" stroke="${C.bowDk}" stroke-width="2"/><path d="M100 132 l16 -9 v19 Z" fill="${C.bow}" stroke="${C.bowDk}" stroke-width="2"/><circle cx="100" cy="133" r="5" fill="${C.nose}" stroke="${C.bowDk}" stroke-width="2"/><path class="ear-l" d="M56 44 L44 8 L88 40 Z" fill="${C.white}" stroke="${C.line}" stroke-width="2.6"/><path class="ear-l" d="M59 40 L52 18 L80 40 Z" fill="${C.ear}"/><path class="ear-r" d="M144 44 L156 8 L112 40 Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path class="ear-r" d="M141 40 L148 18 L120 40 Z" fill="${C.ear}"/><ellipse cx="100" cy="76" rx="58" ry="54" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M100 24 C130 24 158 44 158 78 C158 98 148 116 128 122 C139 98 134 58 110 40 C107 34 103 29 100 24Z" fill="${C.tan}" opacity=".9"/><path d="M66 30 C80 24 95 26 100 38 C88 38 79 46 75 60 C70 48 66 38 66 30Z" fill="${C.tan}" opacity=".82"/><path d="M112 42 q9 6 11 17 M126 52 q8 6 8 16" stroke="${C.tanDk}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".6"/><circle cx="84" cy="40" r="3.2" fill="${C.spot}"/><ellipse cx="58" cy="100" rx="12" ry="7.5" fill="${C.blush}" opacity=".62"/><ellipse cx="142" cy="100" rx="12" ry="7.5" fill="${C.blush}" opacity=".62"/>${eyes}<path d="M95 102 L105 102 L100 108 Z" fill="${C.nose}"/><path d="M100 108 q-5 6 -11 3 M100 108 q5 6 11 3" stroke="#b98e63" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M52 96 L24 92 M52 104 L23 107 M53 112 L25 119" stroke="${C.whisk}" stroke-width="1.8" stroke-linecap="round"/><path d="M148 96 L176 92 M148 104 L177 107 M147 112 L175 119" stroke="${C.whisk}" stroke-width="1.8" stroke-linecap="round"/></g></svg>`}
 function catCurled(){return `<svg class="cat" viewBox="0 0 240 162" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vivi asleep">
     <g class="tail"><path d="M98 120 q-48 9 -66 -8 q-11 -10 -2 -19 q3 13 19 14 q27 2 47 -3Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path d="M66 118 q-2 8 -11 9 M45 113 q-2 7 -10 7" stroke="${C.tanDk}" stroke-width="4.5" fill="none" stroke-linecap="round"/></g>
     <g class="breathe"><path d="M120 70 C84 66 62 92 66 119 C70 141 96 151 130 149 C171 147 197 128 197 100 C197 74 170 64 150 66 C140 67 130 71 120 70Z" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M150 66 C177 64 197 76 197 100 C197 113 190 123 180 131 C189 108 182 84 156 76 C154 72 152 69 150 66Z" fill="${C.tan}" opacity=".95"/><path d="M120 70 C108 70 98 79 96 93 C108 80 122 78 135 83 C131 75 126 70 120 70Z" fill="${C.tan}" opacity=".85"/><path d="M150 78 q11 2 15 10 M168 86 q8 4 9 13 M141 74 q9 0 13 6" stroke="${C.tanDk}" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="92" cy="129" rx="14" ry="9" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><ellipse cx="167" cy="117" rx="34" ry="30" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M167 89 C185 89 197 101 197 117 C197 101 189 93 175 91 C172 90 169 89 167 89Z" fill="${C.tan}" opacity=".95"/><path class="ear-r" d="M187 97 L197 72 L173 90Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.4"/><path class="ear-r" d="M187 93 L192 79 L177 90Z" fill="${C.ear}"/><path class="ear-l" d="M150 92 L146 69 L168 86Z" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><path class="ear-l" d="M152 88 L150 76 L164 86Z" fill="${C.ear}"/><ellipse cx="151" cy="121" rx="7" ry="4.5" fill="${C.blush}" opacity=".5"/><path d="M156 117 q6 6 12 0" stroke="${C.line}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M174 117 q6 6 12 0" stroke="${C.line}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M168 127 q3 3 6 0" stroke="${C.nose}" stroke-width="2.4" fill="none" stroke-linecap="round"/></g></svg>`}
@@ -577,11 +616,21 @@ function buildStage(container,scene,opts={}){
   // sparkles (static twinkle layer)
   if(scene.fx.sparkles){for(let i=0;i<12;i++){const s=document.createElement('div');s.className='spark';s.textContent='✦';
     s.style.left=Math.random()*92+4+'%';s.style.top=Math.random()*70+'%';s.style.fontSize=(8+Math.random()*12)+'px';s.style.animationDelay=(Math.random()*2.6)+'s';fx.appendChild(s)}}
-  // cat
+  // cat (positioned + scaled + motion + facing)
   const layer=document.createElement('div');layer.className='cat-layer';
-  const ground=document.createElement('div');ground.className='cat-ground';
-  const fl=document.createElement('div');fl.className=ambient?'cat-float':'';fl.innerHTML=catSVG(scene.pose);
-  ground.appendChild(fl);layer.appendChild(ground);container.appendChild(layer);
+  const p=scene.pos||{x:50,y:56,scale:1};
+  const mk=scene.motion||'float';
+  const isWalk=(mk==='walkR'||mk==='walkL');
+  const pos=document.createElement('div');pos.className='cat-pos'+(opts.draggable&&!isWalk?' drag':'');
+  pos.style.left=(isWalk?50:p.x)+'%';pos.style.top=p.y+'%';pos.style.transform=`translate(-50%,-50%) scale(${p.scale||1})`;
+  const motion=document.createElement('div');motion.className='cat-motion m-'+mk;
+  const bob=document.createElement('div');bob.className='cat-bob';bob.innerHTML=catSVG(scene.pose);
+  // facing: walk auto-faces its direction, otherwise use the flip toggle
+  let flip=!!scene.flip; if(mk==='walkL')flip=true; if(mk==='walkR')flip=false;
+  if(flip){const sv=bob.querySelector('svg');if(sv)sv.classList.add('flip')}
+  if(isWalk){const dur=Math.max(3,scene.duration||6);motion.style.animation=`${mk} ${dur}s linear both`;bob.style.animation='waddle .6s ease-in-out infinite'}
+  motion.appendChild(bob);pos.appendChild(motion);layer.appendChild(pos);container.appendChild(layer);
+  if(opts.draggable&&!isWalk)enableDrag(container,pos,scene);
   // ambient spawners
   if(ambient){
     if(scene.pose==='curled')startSpawner(fx,()=>{const z=document.createElement('div');z.className='zzz';z.textContent='z';z.style.left='56%';z.style.top='34%';z.style.fontSize=(15+Math.random()*9)+'px';z.style.animation='zfloat 2.6s ease-out forwards';return z},1300,2700);
@@ -594,7 +643,19 @@ function startSpawner(container,make,every,life){
   const fire=()=>{if(!container.isConnected)return;const el=make();container.appendChild(el);setTimeout(()=>el.remove(),life)};
   fire();activeIntervals.push(setInterval(fire,every));
 }
-function renderMini(){const s=curScene();if(!s)return;buildStage(document.getElementById('mini-stage'),s,{ambient:true})}
+function enableDrag(container,posEl,scene){
+  scene.pos=scene.pos||{x:50,y:56,scale:1};
+  let dragging=false;
+  posEl.addEventListener('pointerdown',e=>{dragging=true;posEl.classList.add('grabbing');posEl.setPointerCapture(e.pointerId);e.preventDefault()});
+  posEl.addEventListener('pointermove',e=>{if(!dragging)return;const r=container.getBoundingClientRect();
+    let x=(e.clientX-r.left)/r.width*100, y=(e.clientY-r.top)/r.height*100;
+    x=Math.max(4,Math.min(96,x));y=Math.max(8,Math.min(96,y));
+    scene.pos.x=Math.round(x);scene.pos.y=Math.round(y);
+    posEl.style.left=x+'%';posEl.style.top=y+'%';});
+  const end=()=>{if(!dragging)return;dragging=false;posEl.classList.remove('grabbing');saveProject();renderSceneList()};
+  posEl.addEventListener('pointerup',end);posEl.addEventListener('pointercancel',end);
+}
+function renderMini(){const s=curScene();if(!s)return;buildStage(document.getElementById('mini-stage'),s,{ambient:true,draggable:true})}
 
 /* ============================================================ THEATER */
 let curIndex=0,isPlaying=false,sceneElapsed=0,lastTs=null,finished=false;
@@ -671,7 +732,7 @@ function seedGame(){if(!confirm("Load the sample 5-week Vivi game? This replaces
   const photos=project.backgrounds;project=seedProject();project.backgrounds=photos;epId=project.episodes[0].id;scId=project.episodes[0].scenes[0].id;saveProject();renderAll();toast("Sample game loaded")}
 function exportJSON(){const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(project.title||'vivi-game').replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.json';a.click();URL.revokeObjectURL(a.href);toast("Saved to a file")}
 function importJSON(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
-  if(!d.episodes)throw 0;d.backgrounds=d.backgrounds||[];d.episodes.forEach(e=>{if(!e.id)e.id=uid();e.challenge=e.challenge||{title:'',objective:'',howto:'',points:'',bonus:''};e.scenes.forEach(s=>{if(!s.id)s.id=uid();s.fx=Object.assign({sparkles:false,hearts:false,confetti:false,question:false},s.fx||{})})});
+  if(!d.episodes)throw 0;normProject(d);d.episodes.forEach(e=>{if(!e.id)e.id=uid();e.scenes.forEach(s=>{if(!s.id)s.id=uid()})});
   project=d;epId=project.episodes[0].id;scId=project.episodes[0].scenes[0].id;saveProject();renderAll();toast("Project opened")}catch(e){toast("That file didn't look like a Vivi project")}};r.readAsText(f);ev.target.value=''}
 
 function playFrom(){setView('theater')}
