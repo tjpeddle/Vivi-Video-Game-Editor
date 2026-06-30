@@ -424,6 +424,16 @@ function uid(){return 's'+Math.random().toString(36).slice(2,9)}
 function sc(narration,bg,pose,fx,duration,pos,motion){return {id:uid(),narration,bg,pose,fx:Object.assign({sparkles:false,hearts:false,confetti:false,question:false},fx),duration,pos:Object.assign({x:50,y:56,scale:1},pos||{}),motion:motion||'float'}}
 function seedEpisodes(){
   return [
+   {id:uid(),name:"Week 0 · Meet Vivi",
+    scenes:[
+      sc("Meet Vivi — the smallest, fluffiest new member of the OARS team.","coffee","floating",{sparkles:true},6,null,'pop'),
+      sc("She can't proctor exams or file paperwork. But she's very good at one thing: making a hard day a little lighter.","library","cuddle",{hearts:true},6.5),
+      sc("For the next five Fridays, she's pulling all of us into a little adventure.","campus-lawn","floating",{},6,null,'walkR'),
+      sc("Five weeks. Five challenges. One Golden Paw. Ready to play?","campus-night","floating",{sparkles:true,confetti:true},6.5,{y:52,scale:1.05},'pop')],
+    challenge:{title:"How the Game Works",objective:"Five Fridays, five challenges, one Golden Paw.",
+      howto:"Each Friday, Vivi kicks off a new challenge:\n\nWeek 1 — Where Is Vivi?  (find the hidden cat)\nWeek 2 — Mystery Paws  (guess the teammate)\nWeek 3 — Save the Clues  (solve the puzzles)\nWeek 4 — Cozy Corner  (design her nap spot)\nWeek 5 — The Great Vivi Quest  (scavenger hunt)\n\nPlay solo or jump in whenever you can — every Friday stands on its own.",
+      points:"Earn points each week — they add up to the Golden Paw finale 🏆",
+      bonus:"Every week ends with a silly “What Would Vivi Do?” — answer it for a bonus point."}},
    {id:uid(),name:"Week 1 · Where Is Vivi?",
     scenes:[
       sc("Every Friday, the OARS Testing Center gets a little extra magic — and her name is Vivi.","coffee","floating",{sparkles:true},6,null,'pop'),
