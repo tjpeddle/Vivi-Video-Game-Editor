@@ -160,6 +160,10 @@
   .theater-bar .left{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .ep-select{min-width:220px;font-weight:800}
   .voice-toggle{display:flex;align-items:center;gap:9px;font-weight:800;font-size:13px;color:var(--ink)}
+  .tbar-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .mini-toggle{display:flex;align-items:center;gap:9px;font-weight:800;font-size:13px;color:var(--ink)}
+  .vol{display:flex;align-items:center;gap:7px;font-size:14px}
+  .vol input[type=range]{width:92px}
   .stage-wrap{position:relative;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(43,58,85,.22);border:1px solid rgba(255,255,255,.5)}
   .caption-wrap{position:absolute;left:0;right:0;bottom:0;padding:0 7% 7%;display:flex;justify-content:center;pointer-events:none;z-index:5}
   .caption{max-width:90%;text-align:center;font-family:'Fredoka';font-weight:500;font-size:clamp(15px,2.5vw,26px);line-height:1.35;color:#fff;background:rgba(20,28,55,.4);backdrop-filter:blur(6px);padding:13px 22px;border-radius:18px;text-shadow:0 2px 10px rgba(20,30,60,.5);opacity:0;transform:translateY(10px);transition:opacity .6s,transform .6s}
@@ -318,6 +322,7 @@
         <div class="card" id="challenge-editor">
           <div class="hd"><h2>🏆 This week's challenge</h2><span class="chip" style="font-size:11px">Shows at the end of the story</span></div>
           <div class="bd">
+            <div class="field"><label for="ch-music">🎵 Music mood for this week</label><select id="ch-music" onchange="updateEpisodeMusic(this.value)"></select></div>
             <div class="row2">
               <div class="field"><label for="ch-title">Challenge name</label><input type="text" id="ch-title" oninput="updateChallenge('title',this.value)"></div>
               <div class="field"><label for="ch-obj">Objective (one line)</label><input type="text" id="ch-obj" oninput="updateChallenge('objective',this.value)"></div>
@@ -340,7 +345,11 @@
         <div class="left">
           <select class="ep-select" id="ep-select" onchange="loadEpisodeTheater(this.value)"></select>
         </div>
-        <label class="voice-toggle" style="gap:16px"><span style="display:flex;align-items:center;gap:9px">🎵 Music <span class="switch"><input type="checkbox" id="music-on"><span></span></span></span><span style="display:flex;align-items:center;gap:9px">Narrate aloud <span class="switch"><input type="checkbox" id="voice-on"><span></span></span></span></label>
+        <div class="tbar-controls">
+          <span class="vol">🔊<input type="range" id="vol" min="0" max="1" step="0.05" value="0.5" oninput="Music.setVolume(this.value)" aria-label="Music volume"></span>
+          <label class="mini-toggle">🎵 Music <span class="switch"><input type="checkbox" id="music-on"><span></span></span></label>
+          <label class="mini-toggle">Narrate <span class="switch"><input type="checkbox" id="voice-on"><span></span></span></label>
+        </div>
       </div>
       <div class="stage-wrap">
         <div class="stage" id="stage">
@@ -424,7 +433,7 @@ function uid(){return 's'+Math.random().toString(36).slice(2,9)}
 function sc(narration,bg,pose,fx,duration,pos,motion){return {id:uid(),narration,bg,pose,fx:Object.assign({sparkles:false,hearts:false,confetti:false,question:false},fx),duration,pos:Object.assign({x:50,y:56,scale:1},pos||{}),motion:motion||'float'}}
 function seedEpisodes(){
   return [
-   {id:uid(),name:"Week 0 · Meet Vivi",
+   {id:uid(),name:"Week 0 · Meet Vivi",music:"playful",
     scenes:[
       sc("Meet Vivi — the smallest, fluffiest new member of the OARS team.","coffee","floating",{sparkles:true},6,null,'pop'),
       sc("She can't proctor exams or file paperwork. But she's very good at one thing: making a hard day a little lighter.","library","cuddle",{hearts:true},6.5),
@@ -434,7 +443,7 @@ function seedEpisodes(){
       howto:"Each Friday, Vivi kicks off a new challenge:\n\nWeek 1 — Where Is Vivi?  (find the hidden cat)\nWeek 2 — Mystery Paws  (guess the teammate)\nWeek 3 — Save the Clues  (solve the puzzles)\nWeek 4 — Cozy Corner  (design her nap spot)\nWeek 5 — The Great Vivi Quest  (scavenger hunt)\n\nPlay solo or jump in whenever you can — every Friday stands on its own.",
       points:"Earn points each week — they add up to the Golden Paw finale 🏆",
       bonus:"Every week ends with a silly “What Would Vivi Do?” — answer it for a bonus point."}},
-   {id:uid(),name:"Week 1 · Where Is Vivi?",
+   {id:uid(),name:"Week 1 · Where Is Vivi?",music:"playful",
     scenes:[
       sc("Every Friday, the OARS Testing Center gets a little extra magic — and her name is Vivi.","coffee","floating",{sparkles:true},6,null,'pop'),
       sc("This morning she heard a student ask for extra time… and trotted off to find where that happens.","library","floating",{},6.5,null,'walkR'),
@@ -443,7 +452,7 @@ function seedEpisodes(){
       howto:"Vivi is hiding somewhere this week — the office, a Teams post, the newsletter, an email signature, or a shared doc.\n\nFind her and reply with WHERE she turned up.\n\nClue: “Vivi wandered somewhere that helps make extra time happen…”",
       points:"First correct = 5 pts · everyone else correct = 2 pts",
       bonus:"Vivi accidentally signed up to take a final exam. What class is it?"}},
-   {id:uid(),name:"Week 2 · Vivi's Mystery Paws",
+   {id:uid(),name:"Week 2 · Vivi's Mystery Paws",music:"mystery",
     scenes:[
       sc("Behind the scheduling desk, Vivi found a mysterious little box.","campus-quad","floating",{},6,null,'slideL'),
       sc("Inside were secrets — surprises, confessions, and one very suspicious claim about a Rubik's cube.","library","cuddle",{sparkles:true},6.5),
@@ -452,7 +461,7 @@ function seedEpisodes(){
       howto:"Everyone submits one surprising fact about themselves (anonymously).\n\nWe read them aloud and guess who's who — met a celebrity, owns three cats, can solve a Rubik's cube, etc.",
       points:"1 pt per correct guess",
       bonus:"Vivi picks up a shift at Starbucks. What's her signature drink?"}},
-   {id:uid(),name:"Week 3 · Save Vivi's Clues",
+   {id:uid(),name:"Week 3 · Save Vivi's Clues",music:"mystery",
     scenes:[
       sc("It was the busiest exam day of the term.","library","floating",{},5.5),
       sc("Then a gust from the door sent Vivi's clues flying everywhere.","library","floating",{sparkles:true},6,null,'slideR'),
@@ -461,7 +470,7 @@ function seedEpisodes(){
       howto:"Complete mini-challenges to recover each lost clue: unscramble a word, solve a riddle, finish a puzzle, answer office trivia.\n\nExample — unscramble CECSA → ACCESS.",
       points:"Each solved challenge = 1 clue recovered",
       bonus:"Vivi runs the Testing Center for a day. What's her first new rule?"}},
-   {id:uid(),name:"Week 4 · Vivi's Cozy Corner",
+   {id:uid(),name:"Week 4 · Vivi's Cozy Corner",music:"cozy",
     scenes:[
       sc("All term, Vivi has sat beside nervous students, quietly keeping them company.","library","cuddle",{hearts:true},6.5),
       sc("She never says much. She just stays — so no one has to sit with the hard part alone.","campus-night","cuddle",{hearts:true},7),
@@ -470,7 +479,7 @@ function seedEpisodes(){
       howto:"Design Vivi's dream relaxation spot — draw it, describe it, use Canva, make a collage, anything goes.\n\nWe'll vote on: Most Creative, Funniest, Most Luxurious, and Place We'd Actually Want to Work.",
       points:"Category winners earn bonus points",
       bonus:"Vivi redecorates the breakroom. What's the first thing she adds?"}},
-   {id:uid(),name:"Week 5 · The Great Vivi Quest",
+   {id:uid(),name:"Week 5 · The Great Vivi Quest",music:"celebration",
     scenes:[
       sc("For her final Friday, Vivi left a trail.","campus-night","floating",{},6,null,'walkR'),
       sc("Clue by clue, it winds through the whole Testing Center…","campus-night","floating",{},6,null,'walkL'),
@@ -489,7 +498,7 @@ let epId = project.episodes[0]?.id || null;
 let scId = project.episodes[0]?.scenes[0]?.id || null;
 
 function normScene(s){s.fx=Object.assign({sparkles:false,hearts:false,confetti:false,question:false},s.fx||{});s.pos=Object.assign({x:50,y:56,scale:1},s.pos||{});if(!s.motion)s.motion='float';if(s.flip===undefined)s.flip=false;return s}
-function normProject(p){if(!p)return p;p.backgrounds=p.backgrounds||[];(p.episodes||[]).forEach(e=>{e.challenge=e.challenge||{title:'',objective:'',howto:'',points:'',bonus:''};(e.scenes||[]).forEach(normScene)});return p}
+function normProject(p){if(!p)return p;p.backgrounds=p.backgrounds||[];(p.episodes||[]).forEach(e=>{e.challenge=e.challenge||{title:'',objective:'',howto:'',points:'',bonus:''};if(!e.music)e.music='playful';(e.scenes||[]).forEach(normScene)});return p}
 function loadProject(){try{const r=localStorage.getItem('vivi_hpu_v1');return r?normProject(JSON.parse(r)):null}catch(e){return null}}
 function saveProject(){try{localStorage.setItem('vivi_hpu_v1',JSON.stringify(project))}catch(e){toast("Auto-save full (photos are large) — use Save file to keep them")}}
 
@@ -575,7 +584,9 @@ function updateFlip(v){const s=curScene();if(!s)return;s.flip=!!v;saveProject();
 function setProjTitle(v){project.title=v;saveProject()}
 
 function updateChallenge(field,val){const e=curEp();if(!e)return;e.challenge[field]=val;saveProject();if(field==='title')renderEpList()}
+function updateEpisodeMusic(v){const e=curEp();if(!e)return;e.music=v;saveProject();if(document.getElementById('view-theater').classList.contains('active')&&e.id===epId&&document.getElementById('music-on').checked)Music.setTheme(v)}
 function renderChallenge(){const e=curEp();if(!e)return;const c=e.challenge;
+  const ms=document.getElementById('ch-music');ms.innerHTML='';Object.entries(MUSIC_MOODS).forEach(([k,label])=>{const o=document.createElement('option');o.value=k;o.textContent=label;if((e.music||'playful')===k)o.selected=true;ms.appendChild(o)});
   document.getElementById('ch-title').value=c.title||'';document.getElementById('ch-obj').value=c.objective||'';
   document.getElementById('ch-how').value=c.howto||'';document.getElementById('ch-points').value=c.points||'';document.getElementById('ch-bonus').value=c.bonus||'';
 }
@@ -611,11 +622,10 @@ function deleteBg(id){if(!confirm("Remove this photo? Scenes using it fall back 
 const C={white:"#f8f1e6",line:"#6e4a36",tan:"#e8b98e",tanDk:"#cf9a6e",ear:"#f4b6c0",blush:"#f3a0b0",nose:"#ef6f8c",bow:"#f2849b",bowDk:"#c85f78",iris:"#6fbf73",pupil:"#284b2a",shine:"#eafff0",spot:"#a9774a",whisk:"#d8c4ab"};
 function catSVG(pose){return pose==='curled'?catCurled():catSitting(pose)}
 function catSitting(pose){const open=pose==='floating';
-  const eyes=open?`<g class="eye-open"><path d="M97 76 C86 62 62 64 55 84 C60 103 82 105 97 90 C101 86 101 80 97 76Z" fill="#4f9e57"/><path d="M103 76 C114 62 138 64 145 84 C140 103 118 105 103 90 C99 86 99 80 103 76Z" fill="#4f9e57"/><ellipse cx="74" cy="90" rx="13" ry="11" fill="#7ec77f"/><ellipse cx="126" cy="90" rx="13" ry="11" fill="#7ec77f"/><ellipse cx="73" cy="86" rx="9.5" ry="14" fill="#1f3119"/><ellipse cx="127" cy="86" rx="9.5" ry="14" fill="#1f3119"/><circle cx="67" cy="79" r="5.2" fill="#fff"/><circle cx="78" cy="94" r="2.6" fill="#fff" opacity=".9"/><circle cx="121" cy="79" r="5.2" fill="#fff"/><circle cx="132" cy="94" r="2.6" fill="#fff" opacity=".9"/><path d="M55 84 C62 66 84 62 97 76" stroke="#5e3f2e" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M145 84 C138 66 116 62 103 76" stroke="#5e3f2e" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>`
-    :`<path d="M58 84 Q76 99 96 82" stroke="#5e3f2e" stroke-width="3.6" fill="none" stroke-linecap="round"/><path d="M104 82 Q124 99 142 84" stroke="#5e3f2e" stroke-width="3.6" fill="none" stroke-linecap="round"/>`;
-  return `<svg class="cat" viewBox="0 0 200 222" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vivi sitting">
-    <g class="tail"><path d="M132 184 q44 8 50 -26 q4 -24 -18 -29 q14 9 10 27 q-5 24 -44 16Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path d="M146 170 q9 -2 13 -10" stroke="${C.tanDk}" stroke-width="4.6" fill="none" stroke-linecap="round"/><path d="M158 154 q7 0 11 -6" stroke="${C.tanDk}" stroke-width="4.4" fill="none" stroke-linecap="round"/></g>
-    <g class="breathe"><path d="M100 122 C76 122 66 150 67 172 C68 196 84 210 100 210 C116 210 132 196 133 172 C134 150 124 122 100 122Z" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M100 128 C84 128 73 150 71 170 C70 184 74 198 82 204 C76 172 84 144 100 136Z" fill="${C.tan}" opacity=".75"/><path d="M73 170 q7 -3 12 1 M74 182 q8 -3 13 1 M76 193 q8 -2 12 2" stroke="${C.tanDk}" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".8"/><ellipse cx="88" cy="205" rx="11" ry="8" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><ellipse cx="112" cy="205" rx="11" ry="8" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><path d="M85 201 v7 M91 201 v7 M109 201 v7 M115 201 v7" stroke="#d8c4ab" stroke-width="1.5"/><path d="M100 132 l-16 -9 v19 Z" fill="${C.bow}" stroke="${C.bowDk}" stroke-width="2"/><path d="M100 132 l16 -9 v19 Z" fill="${C.bow}" stroke="${C.bowDk}" stroke-width="2"/><circle cx="100" cy="133" r="5" fill="${C.nose}" stroke="${C.bowDk}" stroke-width="2"/><path class="ear-l" d="M56 44 L44 8 L88 40 Z" fill="${C.white}" stroke="${C.line}" stroke-width="2.6"/><path class="ear-l" d="M59 40 L52 18 L80 40 Z" fill="${C.ear}"/><path class="ear-r" d="M144 44 L156 8 L112 40 Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path class="ear-r" d="M141 40 L148 18 L120 40 Z" fill="${C.ear}"/><ellipse cx="100" cy="76" rx="58" ry="54" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M100 24 C130 24 158 44 158 78 C158 98 148 116 128 122 C139 98 134 58 110 40 C107 34 103 29 100 24Z" fill="${C.tan}" opacity=".9"/><path d="M66 30 C80 24 95 26 100 38 C88 38 79 46 75 60 C70 48 66 38 66 30Z" fill="${C.tan}" opacity=".82"/><path d="M112 42 q9 6 11 17 M126 52 q8 6 8 16" stroke="${C.tanDk}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".6"/><circle cx="84" cy="40" r="3.2" fill="${C.spot}"/><ellipse cx="58" cy="100" rx="12" ry="7.5" fill="${C.blush}" opacity=".62"/><ellipse cx="142" cy="100" rx="12" ry="7.5" fill="${C.blush}" opacity=".62"/>${eyes}<path d="M95 102 L105 102 L100 108 Z" fill="${C.nose}"/><path d="M100 108 q-5 6 -11 3 M100 108 q5 6 11 3" stroke="#b98e63" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M52 96 L24 92 M52 104 L23 107 M53 112 L25 119" stroke="${C.whisk}" stroke-width="1.8" stroke-linecap="round"/><path d="M148 96 L176 92 M148 104 L177 107 M147 112 L175 119" stroke="${C.whisk}" stroke-width="1.8" stroke-linecap="round"/></g></svg>`}
+  const eyes=open?`<g class="eye-open"><path d="M103 78 C91 64 67 68 60 88 C65 106 87 108 103 94 C107 90 107 82 103 78Z" fill="#4f9e57"/><path d="M107 78 C119 64 143 68 150 88 C145 106 123 108 107 94 C103 90 103 82 107 78Z" fill="#4f9e57"/><ellipse cx="77" cy="92" rx="12.5" ry="10.5" fill="#7ec77f"/><ellipse cx="133" cy="92" rx="12.5" ry="10.5" fill="#7ec77f"/><ellipse cx="76" cy="88" rx="8.5" ry="13" fill="#1f3119"/><ellipse cx="134" cy="88" rx="8.5" ry="13" fill="#1f3119"/><circle cx="70" cy="81" r="4.6" fill="#fff"/><circle cx="81" cy="96" r="2.3" fill="#fff" opacity=".9"/><circle cx="128" cy="81" r="4.6" fill="#fff"/><circle cx="139" cy="96" r="2.3" fill="#fff" opacity=".9"/><path d="M60 88 C66 68 90 64 103 78" stroke="#5e3f2e" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M150 88 C144 68 120 64 107 78" stroke="#5e3f2e" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>`
+    :`<path d="M66 88 Q84 101 100 86" stroke="#5e3f2e" stroke-width="3.6" fill="none" stroke-linecap="round"/><path d="M110 86 Q126 101 144 88" stroke="#5e3f2e" stroke-width="3.6" fill="none" stroke-linecap="round"/>`;
+  return `<svg class="cat" viewBox="0 0 210 226" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vivi sitting">
+    <g class="breathe"><path d="M105 108 C70 108 48 140 50 172 C51 200 78 216 105 216 C132 216 159 200 160 172 C162 140 140 108 105 108Z" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M72 132 C58 148 51 170 55 196 C60 190 62 165 74 146 C78 140 76 135 72 132Z" fill="${C.tan}" opacity=".85"/><path d="M138 132 C152 148 159 170 155 196 C150 190 148 165 136 146 C132 140 134 135 138 132Z" fill="${C.tan}" opacity=".85"/><path d="M58 168 q7 -3 12 2 M57 182 q7 -3 12 2 M60 195 q7 -2 11 3" stroke="${C.tanDk}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M152 168 q-7 -3 -12 2 M153 182 q-7 -3 -12 2 M150 195 q-7 -2 -11 3" stroke="${C.tanDk}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M150 156 C176 164 182 194 160 208 C150 214 132 214 120 208 C138 208 156 196 156 178 C156 166 154 160 150 156Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path d="M158 182 q-8 3 -10 11 M150 200 q-8 2 -14 0" stroke="${C.tanDk}" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="92" cy="209" rx="12" ry="8.5" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><ellipse cx="118" cy="209" rx="12" ry="8.5" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><path d="M89 204 v7 M95 204 v7 M115 204 v7 M121 204 v7" stroke="#d8c4ab" stroke-width="1.5"/><path d="M84 126 Q105 138 126 126 L124 133 Q105 145 86 133 Z" fill="#f39aad" stroke="#d96f8b" stroke-width="1.6"/><circle cx="90" cy="134" r="4" fill="#f39aad" stroke="#d96f8b" stroke-width="1.4"/><circle cx="105" cy="137" r="4.6" fill="#f39aad" stroke="#d96f8b" stroke-width="1.4"/><circle cx="120" cy="134" r="4" fill="#f39aad" stroke="#d96f8b" stroke-width="1.4"/><circle cx="105" cy="136" r="2.4" fill="#d96f8b"/><path class="ear-l" d="M62 56 L50 22 L92 52 Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path class="ear-l" d="M65 51 L58 32 L84 52 Z" fill="${C.ear}"/><path class="ear-r" d="M148 56 L160 22 L118 52 Z" fill="${C.white}" stroke="${C.line}" stroke-width="2.6"/><path class="ear-r" d="M145 51 L152 32 L126 52 Z" fill="${C.ear}"/><path d="M105 27 C137 27 161 48 162 78 C163 100 151 120 129 128 C121 132 113 133 105 133 C97 133 89 132 81 128 C59 120 47 100 48 78 C49 48 73 27 105 27Z" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M105 29 C86 29 70 40 64 62 C59 82 62 106 76 122 C66 100 70 64 94 48 C98 41 102 34 105 29Z" fill="${C.tan}" opacity=".9"/><path d="M72 56 q10 -4 15 3 M66 74 q10 -3 15 4" stroke="${C.tanDk}" stroke-width="2" fill="none" stroke-linecap="round" opacity=".5"/><circle cx="90" cy="52" r="3.2" fill="#a9774a"/><ellipse cx="70" cy="98" rx="12" ry="7.5" fill="${C.blush}" opacity=".6"/><ellipse cx="140" cy="98" rx="12" ry="7.5" fill="${C.blush}" opacity=".6"/>${eyes}<path d="M100 98 L110 98 L105 104 Z" fill="${C.nose}"/><path d="M105 104 q-5 6 -11 3 M105 104 q5 6 11 3" stroke="#b98e63" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M56 92 L30 88 M56 100 L29 103 M57 108 L31 115" stroke="${C.whisk}" stroke-width="1.8" stroke-linecap="round"/><path d="M154 92 L180 88 M154 100 L181 103 M153 108 L179 115" stroke="${C.whisk}" stroke-width="1.8" stroke-linecap="round"/></g></svg>`}
 function catCurled(){return `<svg class="cat" viewBox="0 0 240 162" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vivi asleep">
     <g class="tail"><path d="M98 120 q-48 9 -66 -8 q-11 -10 -2 -19 q3 13 19 14 q27 2 47 -3Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.6"/><path d="M66 118 q-2 8 -11 9 M45 113 q-2 7 -10 7" stroke="${C.tanDk}" stroke-width="4.5" fill="none" stroke-linecap="round"/></g>
     <g class="breathe"><path d="M120 70 C84 66 62 92 66 119 C70 141 96 151 130 149 C171 147 197 128 197 100 C197 74 170 64 150 66 C140 67 130 71 120 70Z" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M150 66 C177 64 197 76 197 100 C197 113 190 123 180 131 C189 108 182 84 156 76 C154 72 152 69 150 66Z" fill="${C.tan}" opacity=".95"/><path d="M120 70 C108 70 98 79 96 93 C108 80 122 78 135 83 C131 75 126 70 120 70Z" fill="${C.tan}" opacity=".85"/><path d="M150 78 q11 2 15 10 M168 86 q8 4 9 13 M141 74 q9 0 13 6" stroke="${C.tanDk}" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="92" cy="129" rx="14" ry="9" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><ellipse cx="167" cy="117" rx="34" ry="30" fill="${C.white}" stroke="${C.line}" stroke-width="3"/><path d="M167 89 C185 89 197 101 197 117 C197 101 189 93 175 91 C172 90 169 89 167 89Z" fill="${C.tan}" opacity=".95"/><path class="ear-r" d="M187 97 L197 72 L173 90Z" fill="${C.tan}" stroke="${C.line}" stroke-width="2.4"/><path class="ear-r" d="M187 93 L192 79 L177 90Z" fill="${C.ear}"/><path class="ear-l" d="M150 92 L146 69 L168 86Z" fill="${C.white}" stroke="${C.line}" stroke-width="2.4"/><path class="ear-l" d="M152 88 L150 76 L164 86Z" fill="${C.ear}"/><ellipse cx="151" cy="121" rx="7" ry="4.5" fill="${C.blush}" opacity=".5"/><path d="M156 117 q6 6 12 0" stroke="${C.line}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M174 117 q6 6 12 0" stroke="${C.line}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M168 127 q3 3 6 0" stroke="${C.nose}" stroke-width="2.4" fill="none" stroke-linecap="round"/></g></svg>`}
@@ -685,15 +695,15 @@ function setView(v){
   document.getElementById('view-theater').classList.toggle('active',v==='theater');
   document.getElementById('tab-studio').setAttribute('aria-selected',v==='studio');
   document.getElementById('tab-theater').setAttribute('aria-selected',v==='theater');
-  if(v==='theater'){enterTheater();if(document.getElementById('music-on').checked)Music.start()}else{stopVoice();Music.stop();isPlaying=false;clearSpawners();renderMini()}
+  if(v==='theater'){enterTheater();if(document.getElementById('music-on').checked){Music.setTheme((curEp()||{}).music||'playful');Music.start()}}else{stopVoice();Music.stop();isPlaying=false;clearSpawners();renderMini()}
 }
 function enterTheater(){
   const sel=document.getElementById('ep-select');sel.innerHTML='';
   project.episodes.forEach(e=>{const o=document.createElement('option');o.value=e.id;o.textContent=e.name;sel.appendChild(o)});
-  sel.value=epId;curIndex=0;finished=false;goScene(0,true);
+  sel.value=epId;Music.setTheme((curEp()||{}).music||'playful');curIndex=0;finished=false;goScene(0,true);
   setTimeout(()=>{if(!isPlaying)togglePlay()},400);
 }
-function loadEpisodeTheater(id){epId=id;scId=(curEp().scenes[0]||{}).id;curIndex=0;finished=false;isPlaying=true;document.getElementById('playbtn').textContent='⏸';goScene(0,true)}
+function loadEpisodeTheater(id){epId=id;scId=(curEp().scenes[0]||{}).id;Music.setTheme((curEp()||{}).music||'playful');curIndex=0;finished=false;isPlaying=true;document.getElementById('playbtn').textContent='⏸';goScene(0,true)}
 function theaterStage(){return document.getElementById('stage')}
 function hostStage(){let h=document.getElementById('stage-host');if(!h){h=document.createElement('div');h.id='stage-host';h.style.position='absolute';h.style.inset='0';theaterStage().insertBefore(h,theaterStage().firstChild)}return h}
 
@@ -740,17 +750,32 @@ function copyChallenge(){const c=curEp().challenge;const txt=`${curEp().name}\n\
 
 /* gentle generative soundtrack (Web Audio, no files, no copyright) */
 const Music=(function(){
-  let ctx=null,master=null,delay=null,on=false,timer=null,step=0,nextTime=0;
-  const bpm=90, spb=60/bpm;
-  const bass=[130.81,196.00,220.00,174.61];              // C3 G3 A3 F3 (I V vi IV)
-  const pads=[[261.63,329.63,392.00],[246.94,293.66,392.00],[220.00,261.63,329.63],[174.61,261.63,349.23]];
-  const lead=[329.63,392.00,440.00,392.00, 293.66,392.00,440.00,329.63, 440.00,523.25,440.00,392.00, 440.00,392.00,329.63,261.63];
+  const THEMES={
+    playful:{bpm:90,leadType:'triangle',delay:0.16,
+      bass:[130.81,196.00,220.00,174.61],
+      pads:[[261.63,329.63,392.00],[246.94,293.66,392.00],[220.00,261.63,329.63],[174.61,261.63,349.23]],
+      lead:[329.63,392.00,440.00,392.00,293.66,392.00,440.00,329.63,440.00,523.25,440.00,392.00,440.00,392.00,329.63,261.63]},
+    cozy:{bpm:70,leadType:'sine',delay:0.24,
+      bass:[130.81,110.00,87.31,98.00],
+      pads:[[261.63,329.63,392.00],[220.00,261.63,329.63],[174.61,220.00,261.63],[196.00,246.94,293.66]],
+      lead:[392.00,null,329.63,null,440.00,null,523.25,null,440.00,null,523.25,null,392.00,null,587.33,null]},
+    mystery:{bpm:84,leadType:'triangle',delay:0.2,
+      bass:[110.00,87.31,130.81,98.00],
+      pads:[[220.00,261.63,329.63],[174.61,220.00,261.63],[261.63,329.63,392.00],[196.00,246.94,293.66]],
+      lead:[440.00,null,329.63,523.25,440.00,null,392.00,null,392.00,329.63,null,293.66,293.66,null,493.88,null]},
+    celebration:{bpm:118,leadType:'triangle',delay:0.14,
+      bass:[130.81,196.00,220.00,174.61],
+      pads:[[261.63,329.63,392.00],[246.94,293.66,392.00],[220.00,261.63,329.63],[174.61,261.63,349.23]],
+      lead:[523.25,659.25,783.99,659.25,587.33,783.99,493.88,587.33,440.00,523.25,659.25,523.25,440.00,523.25,698.46,440.00]}
+  };
+  let ctx=null,master=null,delay=null,wet=null,on=false,timer=null,step=0,nextTime=0,vol=0.5,T=THEMES.playful;
+  function spb(){return 60/T.bpm}
   function AC(){return window.AudioContext||window.webkitAudioContext}
   function ensure(){
     if(ctx)return;
     ctx=new (AC())();master=ctx.createGain();master.gain.value=0;master.connect(ctx.destination);
-    delay=ctx.createDelay();delay.delayTime.value=spb*0.75;
-    const fb=ctx.createGain();fb.gain.value=0.2;const wet=ctx.createGain();wet.gain.value=0.16;
+    delay=ctx.createDelay();delay.delayTime.value=spb()*0.75;
+    const fb=ctx.createGain();fb.gain.value=0.2;wet=ctx.createGain();wet.gain.value=T.delay;
     delay.connect(fb);fb.connect(delay);delay.connect(wet);wet.connect(master);
   }
   function voice(freq,t,dur,type,peak,toDelay){
@@ -762,21 +787,24 @@ const Music=(function(){
     o.start(t);o.stop(t+dur+0.05);
   }
   function pad(chord,t,dur){chord.forEach(f=>{const o=ctx.createOscillator();o.type='triangle';o.frequency.value=f;
-    const g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.038,t+0.4);
-    g.gain.setValueAtTime(0.038,t+dur*0.6);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    const g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.036,t+0.4);
+    g.gain.setValueAtTime(0.036,t+dur*0.6);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
     o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+0.05)})}
   function schedStep(i,t){const bar=Math.floor(i/4),b=i%4;
-    if(b===0){pad(pads[bar],t,spb*4*0.98);voice(bass[bar],t,spb*4*0.98,'sine',0.075,false)}
-    const m=lead[i];if(m)voice(m,t,spb*0.9,'triangle',0.095,true)}
-  function tick(){while(nextTime<ctx.currentTime+0.2){schedStep(step,nextTime);nextTime+=spb;step=(step+1)%16}}
+    if(b===0){pad(T.pads[bar],t,spb()*4*0.98);voice(T.bass[bar],t,spb()*4*0.98,'sine',0.075,false)}
+    const m=T.lead[i];if(m)voice(m,t,spb()*0.9,T.leadType,0.09,true)}
+  function tick(){while(nextTime<ctx.currentTime+0.2){schedStep(step,nextTime);nextTime+=spb();step=(step+1)%16}}
   return {
+    setTheme(k){T=THEMES[k]||THEMES.playful;if(delay)delay.delayTime.value=spb()*0.75;if(wet)wet.gain.value=T.delay},
+    setVolume(v){vol=parseFloat(v);if(on&&master){master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setValueAtTime(master.gain.value,ctx.currentTime);master.gain.linearRampToValueAtTime(vol,ctx.currentTime+0.2)}},
     start(){ensure();if(ctx.state==='suspended')ctx.resume();if(on)return;on=true;step=0;nextTime=ctx.currentTime+0.12;
       master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setValueAtTime(Math.max(master.gain.value,0.0001),ctx.currentTime);
-      master.gain.linearRampToValueAtTime(0.5,ctx.currentTime+1.4);timer=setInterval(tick,25)},
+      master.gain.linearRampToValueAtTime(vol,ctx.currentTime+1.4);timer=setInterval(tick,25)},
     stop(){if(!on)return;on=false;if(master){master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setValueAtTime(master.gain.value,ctx.currentTime);master.gain.linearRampToValueAtTime(0,ctx.currentTime+0.7)}clearInterval(timer);timer=null},
     playing(){return on}
   };
 })();
+const MUSIC_MOODS={playful:"Playful",cozy:"Calm & cozy",mystery:"Curious / mystery",celebration:"Celebration"};
 
 /* speech */
 let curUtter=null;
@@ -784,7 +812,7 @@ function speak(t){if(!('speechSynthesis'in window))return;stopVoice();curUtter=n
   const vs=speechSynthesis.getVoices();const pref=vs.find(v=>/female|samantha|zira|karen|moira|google uk english female/i.test(v.name))||vs.find(v=>/en/i.test(v.lang));if(pref)curUtter.voice=pref;speechSynthesis.speak(curUtter)}
 function stopVoice(){if('speechSynthesis'in window)speechSynthesis.cancel()}
 document.getElementById('voice-on').addEventListener('change',e=>{if(!e.target.checked)stopVoice();else if(isPlaying)speak(curEp().scenes[curIndex].narration)});
-document.getElementById('music-on').addEventListener('change',e=>{if(e.target.checked)Music.start();else Music.stop()});
+document.getElementById('music-on').addEventListener('change',e=>{if(e.target.checked){Music.setTheme((curEp()||{}).music||'playful');Music.start()}else Music.stop()});
 
 /* ============================================================ FILE / MISC */
 function newProject(){if(!confirm("Start fresh? Save file first if you want to keep this one."))return;
