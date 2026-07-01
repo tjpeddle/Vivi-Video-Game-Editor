@@ -340,7 +340,7 @@
         <div class="left">
           <select class="ep-select" id="ep-select" onchange="loadEpisodeTheater(this.value)"></select>
         </div>
-        <label class="voice-toggle">Narrate aloud <span class="switch"><input type="checkbox" id="voice-on"><span></span></span></label>
+        <label class="voice-toggle" style="gap:16px"><span style="display:flex;align-items:center;gap:9px">🎵 Music <span class="switch"><input type="checkbox" id="music-on"><span></span></span></span><span style="display:flex;align-items:center;gap:9px">Narrate aloud <span class="switch"><input type="checkbox" id="voice-on"><span></span></span></span></label>
       </div>
       <div class="stage-wrap">
         <div class="stage" id="stage">
@@ -685,7 +685,7 @@ function setView(v){
   document.getElementById('view-theater').classList.toggle('active',v==='theater');
   document.getElementById('tab-studio').setAttribute('aria-selected',v==='studio');
   document.getElementById('tab-theater').setAttribute('aria-selected',v==='theater');
-  if(v==='theater'){enterTheater()}else{stopVoice();isPlaying=false;clearSpawners();renderMini()}
+  if(v==='theater'){enterTheater();if(document.getElementById('music-on').checked)Music.start()}else{stopVoice();Music.stop();isPlaying=false;clearSpawners();renderMini()}
 }
 function enterTheater(){
   const sel=document.getElementById('ep-select');sel.innerHTML='';
@@ -738,12 +738,53 @@ function nextEpisodeTheater(){const idx=project.episodes.findIndex(e=>e.id===epI
 function copyChallenge(){const c=curEp().challenge;const txt=`${curEp().name}\n\n🏆 ${c.title}\n${c.objective}\n\n${c.howto}\n\n🎯 ${c.points}\n🐾 What Would Vivi Do? — ${c.bonus}`;
   navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>toast("Challenge copied to clipboard")).catch(()=>toast("Couldn't copy"))}
 
+/* gentle generative soundtrack (Web Audio, no files, no copyright) */
+const Music=(function(){
+  let ctx=null,master=null,delay=null,on=false,timer=null,step=0,nextTime=0;
+  const bpm=90, spb=60/bpm;
+  const bass=[130.81,196.00,220.00,174.61];              // C3 G3 A3 F3 (I V vi IV)
+  const pads=[[261.63,329.63,392.00],[246.94,293.66,392.00],[220.00,261.63,329.63],[174.61,261.63,349.23]];
+  const lead=[329.63,392.00,440.00,392.00, 293.66,392.00,440.00,329.63, 440.00,523.25,440.00,392.00, 440.00,392.00,329.63,261.63];
+  function AC(){return window.AudioContext||window.webkitAudioContext}
+  function ensure(){
+    if(ctx)return;
+    ctx=new (AC())();master=ctx.createGain();master.gain.value=0;master.connect(ctx.destination);
+    delay=ctx.createDelay();delay.delayTime.value=spb*0.75;
+    const fb=ctx.createGain();fb.gain.value=0.2;const wet=ctx.createGain();wet.gain.value=0.16;
+    delay.connect(fb);fb.connect(delay);delay.connect(wet);wet.connect(master);
+  }
+  function voice(freq,t,dur,type,peak,toDelay){
+    const o=ctx.createOscillator();o.type=type;o.frequency.value=freq;
+    const g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(peak,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+    o.connect(g);g.connect(master);if(toDelay)g.connect(delay);
+    o.start(t);o.stop(t+dur+0.05);
+  }
+  function pad(chord,t,dur){chord.forEach(f=>{const o=ctx.createOscillator();o.type='triangle';o.frequency.value=f;
+    const g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(0.038,t+0.4);
+    g.gain.setValueAtTime(0.038,t+dur*0.6);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+0.05)})}
+  function schedStep(i,t){const bar=Math.floor(i/4),b=i%4;
+    if(b===0){pad(pads[bar],t,spb*4*0.98);voice(bass[bar],t,spb*4*0.98,'sine',0.075,false)}
+    const m=lead[i];if(m)voice(m,t,spb*0.9,'triangle',0.095,true)}
+  function tick(){while(nextTime<ctx.currentTime+0.2){schedStep(step,nextTime);nextTime+=spb;step=(step+1)%16}}
+  return {
+    start(){ensure();if(ctx.state==='suspended')ctx.resume();if(on)return;on=true;step=0;nextTime=ctx.currentTime+0.12;
+      master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setValueAtTime(Math.max(master.gain.value,0.0001),ctx.currentTime);
+      master.gain.linearRampToValueAtTime(0.5,ctx.currentTime+1.4);timer=setInterval(tick,25)},
+    stop(){if(!on)return;on=false;if(master){master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setValueAtTime(master.gain.value,ctx.currentTime);master.gain.linearRampToValueAtTime(0,ctx.currentTime+0.7)}clearInterval(timer);timer=null},
+    playing(){return on}
+  };
+})();
+
 /* speech */
 let curUtter=null;
 function speak(t){if(!('speechSynthesis'in window))return;stopVoice();curUtter=new SpeechSynthesisUtterance(t);curUtter.rate=.93;curUtter.pitch=1.05;
   const vs=speechSynthesis.getVoices();const pref=vs.find(v=>/female|samantha|zira|karen|moira|google uk english female/i.test(v.name))||vs.find(v=>/en/i.test(v.lang));if(pref)curUtter.voice=pref;speechSynthesis.speak(curUtter)}
 function stopVoice(){if('speechSynthesis'in window)speechSynthesis.cancel()}
 document.getElementById('voice-on').addEventListener('change',e=>{if(!e.target.checked)stopVoice();else if(isPlaying)speak(curEp().scenes[curIndex].narration)});
+document.getElementById('music-on').addEventListener('change',e=>{if(e.target.checked)Music.start();else Music.stop()});
 
 /* ============================================================ FILE / MISC */
 function newProject(){if(!confirm("Start fresh? Save file first if you want to keep this one."))return;
